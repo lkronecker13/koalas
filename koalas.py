@@ -1,6 +1,6 @@
 from itertools import groupby
 
-def count_ocurrence_of_one_feature_into_another(dataframe, base_feature, secondary_feature ):
+def count_ocurrence_of_one_feature_into_another(dataframe, base_feature, secondary_feature):
     # List of countries with the unknown one as the first one
     unique_countries = dataframe[base_feature].unique()
     df_grouped = dataframe.groupby([base_feature, secondary_feature])
