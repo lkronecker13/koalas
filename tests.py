@@ -17,11 +17,14 @@ class Tests(TestCase):
 
 
     def test_analyze_groups(self):
-        koala.analyze_features(['user_id', 'joining_date'])
-        self.assertTrue(True)
+        list_of_features = ['user_id', 'joining_date']
+        feature_in_groups_dict = koala.analyze_features(list_of_features, False)
+        self.assertTrue(list(feature_in_groups_dict.keys()) == list_of_features)
+        print(feature_in_groups_dict)
 
     def test_intersection_matrix(self):
-        koala.intersection_matrix('user_id')
+        df_repetitions = koala.intersection_matrix('user_id')
+        print(df_repetitions.head(7))
+        self.assertTrue(df_repetitions.columns.all(base_feature_unique))
 
-        self.assertTrue(True)
 

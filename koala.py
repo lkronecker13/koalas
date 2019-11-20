@@ -1,5 +1,6 @@
 import pandas as pd
 from itertools import groupby
+import group as gp
 
 
 class Koala():
@@ -13,14 +14,11 @@ class Koala():
         self.base_feature = base_feature
         self.base_groups = list(dataframe[base_feature].unique())
 
-    def count_ocurrence_of_one_feature_into_another(self, secondary_feature):
-        # List of countries with the unknown one as the first one
-        unique_countries = self.dataframe[self.base_feature].unique()
+    def unique_elements_group(self, secondary_feature):
         df_grouped = self.dataframe.groupby([self.base_feature, secondary_feature])
-
         key_list = list(df_grouped.groups.keys())
         # Group the secondary_feature values that belong to each value in base_feature
-        user_ids_per_country = {c: set() for c in unique_countries}
+        user_ids_per_country = {c: set() for c in self.base_groups}
 
         for key in key_list:
             user_ids_per_country[key[0]].add(key[1])
@@ -28,43 +26,51 @@ class Koala():
         return user_ids_per_country
 
     def intersection_matrix(self, secondary_feature):
-        user_ids_per_country = self.count_ocurrence_of_one_feature_into_another(secondary_feature)
+        user_ids_per_country = self.unique_elements_group(secondary_feature)
         userids_per_country_counts = [(k, len(val)) for k, val in user_ids_per_country.items()]
 
         print('Different user ids per country: ' + str(userids_per_country_counts))
-        print('Unique *{}* per *{}*'.format(secondary_feature, self.base_feature))
 
-        print('-------------')
-
-        print('Intersection matrix')
-        print(self.base_groups)
+        df_repetitions = pd.DataFrame()
         for country in self.base_groups:
-            print(str([len(user_ids_per_country[country].intersection(user_ids_per_country[c])) for c in
-                       self.dataframe['country'].unique()]) + str(country))
+            ids_per_country = user_ids_per_country[country]
+            intersect = [len(ids_per_country.intersection(user_ids_per_country[country])) for country in self.base_groups]
+            df_repetitions[country] = intersect
+            print(str(intersect) + str(country))
 
-    def analyze_features(self, feature_names):
+        df_repetitions['index'] = self.base_groups
+        df_repetitions = df_repetitions.set_index('index')
+        return df_repetitions
+
+    def analyze_features(self, feature_names, verbose=True):
+        feature_in_groups_dict = {}
         for name in feature_names:
-            self.analize_feature(name)
+            if verbose:
+                print('------------')
+                print('Spliting {} into groups given by the unique elements of {}'.format(name, self.base_feature))
+                print('------------')
+            feature_in_groups_dict[name] = self.analyze_feature(name, verbose)
 
-    def analize_feature(self, feature):
+        return feature_in_groups_dict
+
+    def analyze_feature(self, feature, verbose=True):
         df_grouped_country = self.dataframe.groupby(self.base_feature)
         # See how secondary feature distributes over base_feature by taking each value in the later.
+        groups = []
         for key, group in df_grouped_country:
             all_records = sorted(list(group[feature].values), reverse=True)
             if all_records:
-                print('Using *{}* to group.'.format(key))
-                # Create dictionary of repetitions of each element keyd by the feature value
-                repetitions_dict = {key: len(list(group)) for key, group in groupby(all_records)}
-                sorted_list_max = sorted(repetitions_dict.items(), key=lambda x: x[1], reverse=True)
-                sorted_list_min = sorted(repetitions_dict.items(), key=lambda x: x[1], reverse=False)
-                unique_records = set(all_records)
+                group = gp.Group(group, key, feature)
+                groups.append(group)
+                if verbose:
+                    print('Group details for : *{}*.'.format(key))
+                    print(group)
 
-                print('Total records {}'.format(len(all_records)))
-                print('Most repeted elements: {}'.format(sorted_list_max[:5]))
-                print('Least repeted elements: {}'.format(sorted_list_min[:5]))
-                print('Unique records {}'.format(len(unique_records)))
 
             else:
-                print('No records found')
+                print('Features are exclusive')
+                groups.append(gp.Group())
+
             print('-------------')
 
+        return groups
